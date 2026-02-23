@@ -92,24 +92,31 @@
   }
 
   async function deposit() {
-    const amount = Number(document.getElementById("depositAmount").value);
-    if (amount <= 0) return alert("Enter a valid amount");
+  const amount = Number(document.getElementById("depositAmount").value);
+  if (amount <= 0) return alert("Enter valid amount");
 
-    // Call your Netlify function or Supabase insert here
-    alert(`Deposit of ₦${amount} requested (hook up your payment API here)`);
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
 
-    document.getElementById("depositAmount").value = "";
+  const res = await fetch("/.netlify/functions/init-korapay", {
+    method: "POST",
+    body: JSON.stringify({
+      amount: amount,
+      email: user.email,
+      user_id: user.id
+    })
+  });
+
+  const data = await res.json();
+
+  if (!data?.data?.checkout_url) {
+    alert("Failed to initialize payment");
+    return;
   }
 
-  async function withdraw() {
-    const amount = Number(document.getElementById("withdrawAmount").value);
-    if (amount < 1000) return alert("Minimum withdrawal is ₦1000");
-
-    // Call your Netlify function here
-    alert(`Withdrawal of ₦${amount} requested (hook up backend here)`);
-
-    document.getElementById("withdrawAmount").value = "";
-  }
+  // Redirect user to KoraPay
+  window.location.href = data.data.checkout_url;
+}
 
   loadDashboard();
 </script>
