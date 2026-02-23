@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login | Debby Booster Sites</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-extrabold text-blue-600 tracking-wide">
+        Debby<span class="text-gray-800">Booster</span>
+      </h1>
+      <a href="index.html" class="text-gray-600 hover:text-blue-600 font-medium">
+        Home
+      </a>
+    </div>
+  </header>
+
+  <!-- AUTH CARD -->
+  <main class="flex-grow flex items-center justify-center px-4">
+    <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+
+      <h2 class="text-2xl font-bold text-center text-gray-800 mb-2">
+        Welcome 👋
+      </h2>
+      <p class="text-center text-gray-500 mb-6">
+        Login or create your account to get started
+      </p>
+
+      <!-- EMAIL -->
+      <input
+        id="email"
+        type="email"
+        placeholder="Email address"
+        class="w-full mb-3 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
+      <!-- PASSWORD -->
+      <input
+        id="password"
+        type="password"
+        placeholder="Password"
+        class="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+
+      <!-- LOGIN BUTTON -->
+      <button
+        onclick="login()"
+        class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+        Login
+      </button>
+
+      <!-- REGISTER BUTTON -->
+      <button
+        onclick="register()"
+        class="w-full mt-3 border border-blue-600 text-blue-600 py-2 rounded-lg font-semibold hover:bg-blue-50 transition">
+        Create Account
+      </button>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="text-center py-4 text-gray-400 text-sm">
+    © 2026 Debby Booster Sites
+  </footer>
+
+<script>
+  /* ===============================
+     SUPABASE CONFIG
+  =============================== */
+  const SUPABASE_URL = "https://sjyctlwlbriisblcksfd.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqeWN0bHdsYnJpaXNibGNrc2ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3OTY5MDksImV4cCI6MjA4NzM3MjkwOX0.pA9q6gW7cljyJECnAT11ZnwKCZ7owINc8MTlOnHyWKA";
+
+  const supabaseClient = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+  /* ===============================
+     CAPTURE REFERRAL FROM URL
+     example: auth.html?ref=ABC123
+  =============================== */
+  const params = new URLSearchParams(window.location.search);
+  const refCode = params.get("ref");
+  if (refCode) {
+    localStorage.setItem("referral_code", refCode);
+  }
+
+  /* ===============================
+     LOGIN
+  =============================== */
+  async function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    if (!email || !password) return alert("Fill all fields");
+
+    const { error } = await supabaseClient.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) return alert(error.message);
+
+    window.location.href = "dashboard.html";
+  }
+
+  /* ===============================
+     REGISTER + REFERRAL LOGIC
+  =============================== */
+  async function register() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    if (!email || !password) return alert("Fill all fields");
+
+    const { data, error } = await supabaseClient.auth.signUp({
+      email,
+      password
+    });
+
+    if (error) return alert(error.message);
+
+    const user = data.user;
+
+    // Generate referral code for new user
+    const myReferralCode = Math.random().toString(36).substring(2, 8);
+
+    // Resolve referrer (if exists)
+    let referredBy = null;
+    const storedRef = localStorage.getItem("referral_code");
+
+    if (storedRef) {
+      const { data: refUser } = await supabaseClient
+        .from("users")
+        .select("id")
+        .eq("referral_code", storedRef)
+        .single();
+
+      if (refUser) referredBy = refUser.id;
+    }
+
+    // Insert user profile
+    const { error: profileError } = await supabaseClient
+      .from("users")
+      .insert({
+        id: user.id,
+        email: email,
+        role: "user",
+        balance: 0,
+        referral_code: myReferralCode,
+        referred_by: referredBy
+      });
+
+    if (profileError) {
+      alert("Profile creation failed");
+      return;
+    }
+
+    localStorage.removeItem("referral_code");
+
+    alert("Account created successfully. Please login.");
+  }
+</script>
+
+</body>
+</html>

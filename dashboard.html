@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Debby Booster Sites</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- HEADER -->
+  <header class="bg-blue-600 text-white p-4 font-bold text-xl">
+    Debby Booster Sites - Dashboard
+  </header>
+
+  <!-- MAIN -->
+  <main class="flex-grow max-w-4xl mx-auto p-6 space-y-6">
+
+    <!-- USER BALANCE & REFERRAL -->
+    <div class="bg-white shadow rounded-lg p-6 flex flex-col space-y-3">
+      <h2 class="text-xl font-bold text-gray-800">Welcome, <span id="userEmail">User</span></h2>
+      <p class="text-gray-700">Balance: ₦<span id="userBalance">0</span></p>
+      <p class="text-gray-700">Referral Earnings: ₦<span id="referralEarnings">0</span></p>
+      <p class="text-gray-700">
+        Your referral link: 
+        <span class="font-semibold text-blue-600" id="referralLink"></span>
+      </p>
+    </div>
+
+    <!-- DEPOSIT & WITHDRAW -->
+    <div class="bg-white shadow rounded-lg p-6 flex flex-col space-y-4">
+      <!-- Deposit -->
+      <div>
+        <label class="block text-gray-700 mb-1">Deposit Amount (₦)</label>
+        <input id="depositAmount" type="number" class="w-full p-2 border rounded" placeholder="Enter amount">
+        <button onclick="deposit()" class="mt-2 w-full bg-green-500 text-white py-2 rounded hover:bg-green-600">Deposit</button>
+      </div>
+
+      <!-- Withdraw -->
+      <div>
+        <label class="block text-gray-700 mb-1">Withdraw Amount (₦)</label>
+        <input id="withdrawAmount" type="number" class="w-full p-2 border rounded" placeholder="Enter amount">
+        <button onclick="withdraw()" class="mt-2 w-full bg-red-500 text-white py-2 rounded hover:bg-red-600">Withdraw</button>
+        <p class="text-gray-500 text-sm mt-1">Minimum withdrawal is ₦1000</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="text-center py-4 text-gray-400 text-sm">
+    © 2026 Debby Booster Sites
+  </footer>
+
+<script>
+  // Supabase config
+  const SUPABASE_URL = "https://sjyctlwlbriisblcksfd.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqeWN0bHdsYnJpaXNibGNrc2ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3OTY5MDksImV4cCI6MjA4NzM3MjkwOX0.pA9q6gW7cljyJECnAT11ZnwKCZ7owINc8MTlOnHyWKA";
+
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUser;
+
+  async function loadDashboard() {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) {
+      window.location.href = "/auth.html";
+      return;
+    }
+    currentUser = userData.user;
+
+    // Fetch profile
+    const { data: profile } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", currentUser.id)
+      .single();
+
+    if (profile) {
+      document.getElementById("userEmail").innerText = profile.email;
+      document.getElementById("userBalance").innerText = profile.balance;
+      document.getElementById("referralEarnings").innerText = profile.referral_earnings;
+
+      document.getElementById("referralLink").innerText = `${window.location.origin}/auth.html?ref=${profile.referral_code}`;
+    }
+  }
+
+  async function deposit() {
+    const amount = Number(document.getElementById("depositAmount").value);
+    if (amount <= 0) return alert("Enter a valid amount");
+
+    // Call your Netlify function or Supabase insert here
+    alert(`Deposit of ₦${amount} requested (hook up your payment API here)`);
+
+    document.getElementById("depositAmount").value = "";
+  }
+
+  async function withdraw() {
+    const amount = Number(document.getElementById("withdrawAmount").value);
+    if (amount < 1000) return alert("Minimum withdrawal is ₦1000");
+
+    // Call your Netlify function here
+    alert(`Withdrawal of ₦${amount} requested (hook up backend here)`);
+
+    document.getElementById("withdrawAmount").value = "";
+  }
+
+  loadDashboard();
+</script>
+
+</body>
+</html>

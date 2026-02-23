@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Orders - Debby Booster Sites</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Supabase CDN -->
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+  <!-- HEADER -->
+  <header class="bg-blue-600 text-white p-4 font-bold text-xl">
+    Debby Booster Sites — Admin Orders
+  </header>
+
+  <!-- MAIN -->
+  <main class="p-6">
+    <h2 class="text-2xl font-semibold mb-4">All Orders</h2>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white shadow rounded-lg overflow-hidden">
+        <thead class="bg-blue-100 text-sm">
+          <tr>
+            <th class="p-2 text-left">User</th>
+            <th class="p-2 text-left">Service</th>
+            <th class="p-2 text-left">Link</th>
+            <th class="p-2 text-left">Qty</th>
+            <th class="p-2 text-left">Price</th>
+            <th class="p-2 text-left">Status</th>
+            <th class="p-2 text-left">Created</th>
+            <th class="p-2 text-left">Action</th>
+          </tr>
+        </thead>
+        <tbody id="ordersTableBody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- SCRIPT -->
+  <script>
+    /* ============================
+       SUPABASE CONFIG
+    ============================= */
+    const SUPABASE_URL = "https://sjyctlwlbriisblcksfd.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqeWN0bHdsYnJpaXNibGNrc2ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3OTY5MDksImV4cCI6MjA4NzM3MjkwOX0.pA9q6gW7cljyJECnAT11ZnwKCZ7owINc8MTlOnHyWKA";
+
+    const supabase = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+
+    /* ============================
+       ADMIN AUTH CHECK
+    ============================= */
+    async function checkAdmin() {
+      const { data: userData } = await supabase.auth.getUser();
+
+      if (!userData?.user) {
+        window.location.href = "/auth.html";
+        return;
+      }
+
+      const { data: profile, error } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", userData.user.id)
+        .single();
+
+      if (error || profile.role !== "admin") {
+        alert("Access denied");
+        window.location.href = "/dashboard.html";
+        return;
+      }
+
+      loadOrders();
+    }
+
+    /* ============================
+       LOAD ORDERS
+    ============================= */
+    async function loadOrders() {
+      const { data: orders, error } = await supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        alert("Failed to load orders");
+        return;
+      }
+
+      const tbody = document.getElementById("ordersTableBody");
+      tbody.innerHTML = "";
+
+      orders.forEach(order => {
+        const tr = document.createElement("tr");
+        tr.className = "border-b hover:bg-blue-50 text-sm";
+
+        tr.innerHTML = `
+          <td class="p-2">${order.user_id}</td>
+          <td class="p-2">${order.service_id}</td>
+          <td class="p-2 truncate max-w-xs">${order.link}</td>
+          <td class="p-2">${order.quantity}</td>
+          <td class="p-2 font-semibold">${order.price}</td>
+          <td class="p-2 font-bold" id="status-${order.id}">
+            ${order.status}
+          </td>
+          <td class="p-2">
+            ${new Date(order.created_at).toLocaleString()}
+          </td>
+          <td class="p-2 space-x-1">
+            <button
+              onclick="updateStatus('${order.id}','completed')"
+              class="bg-green-500 text-white px-2 py-1 rounded text-xs">
+              Complete
+            </button>
+            <button
+              onclick="updateStatus('${order.id}','canceled')"
+              class="bg-red-500 text-white px-2 py-1 rounded text-xs">
+              Cancel
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ============================
+       UPDATE ORDER STATUS
+    ============================= */
+    async function updateStatus(order_id, status) {
+      const res = await fetch("/.netlify/functions/update-order-status", {
+        method: "POST",
+        body: JSON.stringify({ order_id, status })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to update");
+        return;
+      }
+
+      document.getElementById(`status-${order_id}`).innerText = status;
+      alert("Order updated");
+    }
+
+    /* ============================
+       INIT
+    ============================= */
+    checkAdmin();
+  </script>
+
+</body>
+</html>
