@@ -1,0 +1,24 @@
+{
+  "name": "debbyboostersites",
+  "version": "1.0.0",
+  "description": "",
+  "main": "admin-orders.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sommychiplug/debbybooster.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Sommychiplug/debbybooster/issues"
+  },
+  "homepage": "https://github.com/Sommychiplug/debbybooster#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.97.0"
+  }
+}
