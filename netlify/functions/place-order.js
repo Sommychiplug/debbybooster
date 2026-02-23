@@ -53,3 +53,42 @@ exports.handler = async function(event, context) {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };
+// 1️⃣ Get user who placed order
+const { data: buyer } = await supabase
+  .from("users")
+  .select("id, referred_by")
+  .eq("id", user_id)
+  .single();
+
+// 2️⃣ Check if this is user's FIRST order
+const { count } = await supabase
+  .from("orders")
+  .select("*", { count: "exact", head: true })
+  .eq("user_id", user_id);
+
+// 3️⃣ Pay referral bonus ONLY ON FIRST ORDER
+if (count === 1 && buyer.referred_by) {
+
+  // Check if already paid
+  const { data: paidCheck } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("user_id", user_id)
+    .eq("referral_paid", true)
+    .limit(1);
+
+  if (!paidCheck || paidCheck.length === 0) {
+
+    // Add ₦100 to referrer
+    await supabase.rpc("increment_referral", {
+      uid: buyer.referred_by,
+      amount: 1
+    });
+
+    // Mark referral as paid
+    await supabase
+      .from("orders")
+      .update({ referral_paid: true })
+      .eq("user_id", user_id);
+  }
+}
