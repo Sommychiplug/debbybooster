@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Dashboard | Debby Booster</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="bg-gray-100 min-h-screen">
+
+<header class="bg-blue-600 text-white p-4 text-xl font-bold">
+  Admin Dashboard – Debby Booster
+</header>
+
+<main class="p-6 space-y-6">
+
+  <!-- ADD SERVICE -->
+  <section class="bg-white p-4 rounded shadow">
+    <h2 class="font-bold mb-3">Add Service</h2>
+    <input id="serviceName" placeholder="Service name" class="border p-2 w-full mb-2" />
+    <input id="servicePrice" type="number" placeholder="Price per 1k" class="border p-2 w-full mb-2" />
+    <button onclick="addService()" class="bg-blue-600 text-white px-4 py-2 rounded">
+      Add Service
+    </button>
+  </section>
+
+  <!-- VIEW WITHDRAWALS -->
+  <section class="bg-white p-4 rounded shadow">
+    <h2 class="font-bold mb-3">Withdrawals</h2>
+    <div id="withdrawals" class="text-sm text-gray-700"></div>
+  </section>
+
+</main>
+
+<script>
+const supabase = supabase.createClient(
+  "https://sjyctlwlbriisblcksfd.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNqeWN0bHdsYnJpaXNibGNrc2ZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3OTY5MDksImV4cCI6MjA4NzM3MjkwOX0.pA9q6gW7cljyJECnAT11ZnwKCZ7owINc8MTlOnHyWKA"
+);
+
+/* 🔒 ADMIN PROTECTION */
+async function protectAdmin() {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) {
+    window.location.href = "/auth.html";
+    return;
+  }
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", auth.user.id)
+    .single();
+
+  if (profile.role !== "admin") {
+    alert("Access denied");
+    window.location.href = "/dashboard.html";
+  }
+}
+
+protectAdmin();
+
+/* ➕ ADD SERVICE */
+async function addService() {
+  const name = serviceName.value;
+  const price = Number(servicePrice.value);
+
+  if (!name || price <= 0) return alert("Fill all fields");
+
+  const { error } = await supabase.from("services").insert({ name, price });
+  if (error) return alert(error.message);
+
+  alert("Service added successfully");
+}
+
+/* 📤 LOAD WITHDRAWALS */
+async function loadWithdrawals() {
+  const { data } = await supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
+  const box = document.getElementById("withdrawals");
+
+  if (!data || data.length === 0) {
+    box.innerHTML = "No withdrawals yet";
+    return;
+  }
+
+  box.innerHTML = data.map(w =>
+    `<div class="border-b py-2">
+      User: ${w.user_id}<br/>
+      Amount: ₦${w.amount}<br/>
+      Status: ${w.status}
+    </div>`
+  ).join("");
+}
+
+loadWithdrawals();
+</script>
+
+</body>
+</html>

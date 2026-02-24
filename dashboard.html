@@ -10,6 +10,7 @@
 
   <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
 </head>
 
 <body class="bg-gray-100 min-h-screen flex flex-col">
@@ -21,7 +22,15 @@
 
   <!-- MAIN -->
   <main class="flex-grow max-w-4xl mx-auto p-6 space-y-6">
+   <h2 class="text-xl font-bold mb-2">Place Order</h2>
 
+<select id="serviceSelect" class="border p-2 w-full mb-2"></select>
+<input id="orderLink" placeholder="Link" class="border p-2 w-full mb-2"/>
+<input id="orderQty" type="number" placeholder="Quantity" class="border p-2 w-full mb-2"/>
+
+<button onclick="placeOrder()" class="bg-blue-600 text-white px-4 py-2 rounded">
+  Place Order
+</button>
     <!-- USER BALANCE & REFERRAL -->
     <div class="bg-white shadow rounded-lg p-6 flex flex-col space-y-3">
       <h2 class="text-xl font-bold text-gray-800">Welcome, <span id="userEmail">User</span></h2>
@@ -90,8 +99,34 @@
       document.getElementById("referralLink").innerText = `${window.location.origin}/auth.html?ref=${profile.referral_code}`;
     }
   }
+async function loadServices() {
+  const { data } = await supabase.from("services").select("*");
+  const select = document.getElementById("serviceSelect");
+  select.innerHTML = "";
 
+  data.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s.id;
+    opt.textContent = `${s.name} – ₦${s.price}/1k`;
+    select.appendChild(opt);
+  });
+}
+
+loadServices();
+async function withdraw() {
+  const amount = Number(document.getElementById("withdrawAmount").value);
+  if (amount < 1000) return alert("Minimum withdrawal is ₦1000");
+
+  await supabase.from("withdrawals").insert({
+    user_id: user.id,
+    amount,
+    status: "pending"
+  });
+
+  alert("Withdrawal requested");
+}
   async function deposit() {
+
   const amount = Number(document.getElementById("depositAmount").value);
   if (amount <= 0) return alert("Enter valid amount");
 
@@ -113,12 +148,43 @@
     alert("Failed to initialize payment");
     return;
   }
-
+<button onclick="deposit()">Deposit</button>
   // Redirect user to KoraPay
   window.location.href = data.data.checkout_url;
 }
 
   loadDashboard();
+  const { data: authData } = await supabase.auth.getUser();
+if (!authData?.user) {
+  window.location.href = "/auth.html";
+}
+
+const { data: profile } = await supabase
+  .from("users")
+  .select("role")
+  .eq("id", authData.user.id)
+  .single();
+
+if (profile.role === "admin") {
+  window.location.href = "/admin-dashboard.html";
+}
+<!-- DEPOSIT SECTION -->
+<div class="bg-white p-4 rounded shadow mt-6">
+  <h2 class="font-bold mb-2">Deposit Funds</h2>
+
+  <input
+    id="depositAmount"
+    type="number"
+    placeholder="Enter amount (₦)"
+    class="border p-2 w-full mb-3"
+  />
+
+  <button
+    onclick="deposit()"
+    class="bg-blue-600 text-white px-4 py-2 rounded w-full">
+    Deposit
+  </button>
+</div>
 </script>
 
 </body>
